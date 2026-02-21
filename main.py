@@ -16,11 +16,22 @@ init_db()
 
 def on_message(client: NewClient, event: MessageEv):
     try:
-        # 1. Obtener el ID del chat (JID) de forma robusta
-        # En versiones nuevas es: event.Info.MessageSource.Chat
+        # --- FILTROS DE SEGURIDAD ---
+        # Obtenemos el ID del chat y lo convertimos a texto para verificar
         chat_jid = event.Info.MessageSource.Chat
-        
-        # 2. Extraer el texto del mensaje
+        jid_str = str(chat_jid)
+
+        # 1. Ignorar si el mensaje viene de un grupo (@g.us) o un estado (@broadcast)
+        if "@g.us" in jid_str or "@broadcast" in jid_str:
+            return
+
+        # 2. Ignorar si el mensaje NO lo enviaste tú mismo
+        # (Esto evita que el bot lea chats de otras personas)
+        if not event.Info.MessageSource.IsFromMe:
+            return
+        # -----------------------------
+
+        # 2. Extraer el texto del mensaje (Tu lógica original)
         msg = event.Message
         text = ""
         
@@ -35,15 +46,15 @@ def on_message(client: NewClient, event: MessageEv):
         if not text:
             return
 
-        print(f"\n--- Nuevo Mensaje ---")
+        print(f"\n--- Nuevo Mensaje Tuyo ---")
         print(f"Texto: {text}")
 
-        # 3. Procesar con Ollama (asegúrate de que phi3 esté corriendo)
+        # 3. Procesar con Ollama (Tu lógica original)
         data = parse_expense(text)
         print(f"IA interpretó: {data}")
 
         if data and "monto" in data and "error" not in data:
-            # 4. Guardar en SQLite
+            # 4. Guardar en SQLite (Tu lógica original)
             save_gasto(
                 monto=float(data['monto']), 
                 categoria=data.get('categoria', 'Otros'), 
