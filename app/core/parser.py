@@ -10,7 +10,7 @@ def parse_expense(text):
     Si no hay un monto claro, devuelve {{"error": "no_data"}}.
     """
     try:
-        response = ollama.chat(model='llama3', messages=[{'role': 'user', 'content': prompt}])
+        response = ollama.chat(model='phi3', messages=[{'role': 'user', 'content': prompt}])
         # Limpiamos la respuesta por si el modelo añade texto extra
         content = response['message']['content']
         return json.loads(content[content.find('{'):content.rfind('}')+1])
