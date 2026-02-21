@@ -7,7 +7,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from neonize.client import NewClient
-from neonize.events import MessageEv  # Cambio de nombre aquí
+from neonize.events import MessageEv
 from app.core.parser import parse_expense
 from app.core.database import init_db, save_gasto
 
@@ -15,52 +15,59 @@ from app.core.database import init_db, save_gasto
 init_db()
 
 def on_message(client: NewClient, event: MessageEv):
-    # Acceder al mensaje de forma segura
-    message = event.Message
-    chat_jid = event.Info.Chat
-    
-    # Extraer el texto del mensaje (puede venir de diferentes campos de WhatsApp)
-    text = (
-        message.conversation or 
-        message.extendedTextMessage.text or 
-        message.imageMessage.caption or 
-        ""
-    )
+    try:
+        # 1. Obtener el ID del chat (JID) de forma robusta
+        # En versiones nuevas es: event.Info.MessageSource.Chat
+        chat_jid = event.Info.MessageSource.Chat
+        
+        # 2. Extraer el texto del mensaje
+        msg = event.Message
+        text = ""
+        
+        if msg.conversation:
+            text = msg.conversation
+        elif msg.extendedTextMessage and msg.extendedTextMessage.text:
+            text = msg.extendedTextMessage.text
+        elif msg.imageMessage and msg.imageMessage.caption:
+            text = msg.imageMessage.caption
 
-    if text:
-        print(f"Procesando: {text}")
-        
-        # 1. Procesar con Ollama
+        # Si no hay texto, salimos
+        if not text:
+            return
+
+        print(f"\n--- Nuevo Mensaje ---")
+        print(f"Texto: {text}")
+
+        # 3. Procesar con Ollama (asegúrate de que phi3 esté corriendo)
         data = parse_expense(text)
-        
+        print(f"IA interpretó: {data}")
+
         if data and "monto" in data and "error" not in data:
-            # 2. Guardar en SQLite
+            # 4. Guardar en SQLite
             save_gasto(
                 monto=float(data['monto']), 
-                categoria=data['categoria'], 
-                descripcion=data['descripcion']
+                categoria=data.get('categoria', 'Otros'), 
+                descripcion=data.get('descripcion', text)
             )
             
-            # 3. Confirmar por WhatsApp
-            respuesta = f"✅ *Gasto Anotado*\n💰 Monto: ${data['monto']}\n📁 Categoría: {data['categoria']}\n📝: {data['descripcion']}"
+            # 5. Confirmar por WhatsApp
+            respuesta = f"✅ *Gasto Registrado*\n💰 Monto: ${data['monto']}\n📁 Cat: {data['categoria']}"
             client.send_message(chat_jid, respuesta)
-        elif "error" not in data:
-            # Si Ollama devolvió algo pero no es un gasto
-            pass
+            print("Respuesta enviada a WhatsApp")
+            
+    except Exception as e:
+        print(f"Error procesando mensaje: {e}")
 
 def main():
-    # Creamos la carpeta data si no existe para evitar errores
     if not os.path.exists("data"):
         os.makedirs("data")
 
-    # 'data/session.db' guardará tus credenciales
+    # Usamos session.db para guardar la conexión
     client = NewClient("data/session.db")
-
-    # Registramos el evento corregido
     client.event(MessageEv)(on_message)
 
-    print("--- BOT DE FINANZAS LOCAL ---")
-    print("Escanea el código QR en la terminal...")
+    print("--- BOT DE FINANZAS LOCAL CONECTADO ---")
+    print("Esperando mensajes...")
     
     client.connect()
 

@@ -30,3 +30,23 @@ def save_gasto(monto, categoria, descripcion):
         db.rollback()
     finally:
         db.close()
+
+def get_all_gastos():
+    from .models import Gasto
+    db = SessionLocal()
+    try:
+        # Obtenemos todos los gastos de la base de datos
+        gastos = db.query(Gasto).all()
+        # Los convertimos a una lista de diccionarios para que Pandas los entienda
+        return [
+            {
+                "id": g.id,
+                "monto": g.monto,
+                "categoria": g.categoria,
+                "descripcion": g.descripcion,
+                "fecha": g.fecha
+            }
+            for g in gastos
+        ]
+    finally:
+        db.close()
