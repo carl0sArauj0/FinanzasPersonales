@@ -16,7 +16,7 @@ st.markdown("""<style> .main { background-color: #f5f7f9; } </style>""", unsafe_
 
 # --- NAVEGACIÓN LATERAL ---
 with st.sidebar:
-    st.title("🏦 Monai Local")
+    st.title("🏦 Finanzas")
     seccion = st.radio("Menú Principal", ["📊 Gastos", "💰 Ahorros y Bancos"])
     st.divider()
     st.info("Todo procesado localmente con Llama 3.2")
