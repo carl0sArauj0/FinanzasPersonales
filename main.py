@@ -3,80 +3,86 @@ import signal
 import sys
 import os
 
+# Aseguramos que Python vea la carpeta 'app'
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from neonize.client import NewClient
 from neonize.events import MessageEv
 from app.core.parser import parse_expense
-from app.core.database import init_db, save_gasto
+from app.core.database import init_db, save_gasto, update_ahorro
 
-# Inicializar DB
+# Inicializar Base de Datos al arrancar
 init_db()
 
 def on_message(client: NewClient, event: MessageEv):
     try:
-        # Obtenemos el ID del chat y lo convertimos a texto para verificar
+        # --- FILTROS DE SEGURIDAD ---
         chat_jid = event.Info.MessageSource.Chat
         jid_str = str(chat_jid)
 
-        # 1. Ignorar si el mensaje viene de un grupo (@g.us) o un estado (@broadcast)
+        # 1. Ignorar Grupos y Estados
         if "@g.us" in jid_str or "@broadcast" in jid_str:
             return
 
-        # 2. Ignorar si el mensaje NO lo enviaste tú mismo
-        # (Esto evita que el bot lea chats de otras personas)
+        # 2. Solo procesar mensajes que TÚ envías
         if not event.Info.MessageSource.IsFromMe:
             return
-        # -----------------------------
 
-        # 2. Extraer el texto del mensaje (Tu lógica original)
+        # --- EXTRACCIÓN DE TEXTO ---
         msg = event.Message
-        text = ""
-        
-        if msg.conversation:
-            text = msg.conversation
-        elif msg.extendedTextMessage and msg.extendedTextMessage.text:
-            text = msg.extendedTextMessage.text
-        elif msg.imageMessage and msg.imageMessage.caption:
-            text = msg.imageMessage.caption
+        text = (msg.conversation or 
+                (msg.extendedTextMessage and msg.extendedTextMessage.text) or 
+                (msg.imageMessage and msg.imageMessage.caption) or 
+                "")
 
-        # Si no hay texto, salimos
         if not text:
             return
 
-        print(f"\n--- Nuevo Mensaje Tuyo ---")
+        print(f"\n--- Procesando Mensaje ---")
         print(f"Texto: {text}")
 
-        # 3. Procesar con Ollama (Tu lógica original)
+        # --- PROCESAMIENTO CON IA ---
         data = parse_expense(text)
         print(f"IA interpretó: {data}")
 
-        if data and "monto" in data and "error" not in data:
-            # 4. Guardar en SQLite (Tu lógica original)
-            save_gasto(
-                monto=float(data['monto']), 
-                categoria=data.get('categoria', 'Otros'), 
-                descripcion=data.get('descripcion', text)
-            )
+        if "error" in data:
+            return
+
+        # --- DECISIÓN DE LÓGICA ---
+        tipo = data.get("tipo", "gasto") # Por defecto asume gasto
+
+        if tipo == "gasto":
+            monto = float(data.get('monto', 0))
+            cat = data.get('categoria', 'Gastos personales')
+            desc = data.get('descripcion', text)
             
-            # 5. Confirmar por WhatsApp
-            respuesta = f"✅ *Gasto Registrado*\n💰 Monto: ${data['monto']}\n📁 Cat: {data['categoria']}"
+            save_gasto(monto, cat, desc)
+            
+            respuesta = f"💸 *Gasto Registrado*\n💰 ${monto:,.0f}\n📁 {cat}\n📝 {desc}"
             client.send_message(chat_jid, respuesta)
-            print("Respuesta enviada a WhatsApp")
+
+        elif tipo == "ahorro":
+            monto = float(data.get('monto', 0))
+            banco = data.get('banco', 'Otros')
+            bolsillo = data.get('bolsillo', 'Principal')
             
+            update_ahorro(banco, bolsillo, monto)
+            
+            respuesta = f"💰 *Ahorro Actualizado*\n🏦 {banco}\n📦 {bolsillo}\n💵 Nuevo Saldo: ${monto:,.0f}"
+            client.send_message(chat_jid, respuesta)
+
     except Exception as e:
-        print(f"Error procesando mensaje: {e}")
+        print(f"Error en on_message: {e}")
 
 def main():
     if not os.path.exists("data"):
         os.makedirs("data")
 
-    # Usamos session.db para guardar la conexión
     client = NewClient("data/session.db")
     client.event(MessageEv)(on_message)
 
-    print("--- BOT DE FINANZAS LOCAL CONECTADO ---")
-    print("Esperando mensajes...")
+    print("--- MONAI LOCAL: ACTIVO ---")
+    print("Esperando tus mensajes en WhatsApp...")
     
     client.connect()
 
