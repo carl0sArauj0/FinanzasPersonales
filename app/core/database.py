@@ -70,3 +70,10 @@ def get_ahorros():
     res = db.query(Ahorro).all()
     db.close()
     return res
+
+def get_all_ahorros():
+    from .models import Ahorro
+    db = SessionLocal()
+    res = db.query(Ahorro).all()
+    db.close()
+    return [{"banco": a.banco, "bolsillo": a.bolsillo, "monto": a.monto} for a in res]
