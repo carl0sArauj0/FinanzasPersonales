@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 from app.core.database import get_all_gastos, get_all_ahorros, update_ahorro
 
 # Configuración visual de Streamlit
-st.set_page_config(page_title="Monai Local - Mi Dashboard", layout="wide", page_icon="📉")
+st.set_page_config(page_title="Mi Dashboard", layout="wide", page_icon="📉")
 
 # --- ESTILOS ---
 st.markdown("""<style> .main { background-color: #f5f7f9; } </style>""", unsafe_allow_html=True)
