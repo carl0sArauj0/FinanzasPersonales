@@ -11,3 +11,11 @@ class Gasto(Base):
     categoria = Column(String)
     descripcion = Column(String)
     fecha = Column(DateTime, default=datetime.utcnow)
+
+class Ahorro(Base):
+    __tablename__ = 'ahorros'
+    id = Column(Integer, primary_key=True)
+    banco = Column(String, nullable=False)
+    bolsillo = Column(String, nullable=False)
+    monto = Column(Float, default=0.0)
+    fecha_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
