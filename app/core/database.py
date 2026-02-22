@@ -48,3 +48,25 @@ def get_all_gastos():
         ]
     finally:
         db.close()
+
+def update_ahorro(banco, bolsillo, monto_nuevo):
+    from .models import Ahorro
+    db = SessionLocal()
+    # Buscamos si ya existe ese bolsillo en ese banco
+    item = db.query(Ahorro).filter_by(banco=banco, bolsillo=bolsillo).first()
+    
+    if item:
+        item.monto = monto_nuevo
+    else:
+        item = Ahorro(banco=banco, bolsillo=bolsillo, monto=monto_nuevo)
+        db.add(item)
+    
+    db.commit()
+    db.close()
+
+def get_ahorros():
+    from .models import Ahorro
+    db = SessionLocal()
+    res = db.query(Ahorro).all()
+    db.close()
+    return res
