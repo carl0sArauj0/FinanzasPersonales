@@ -3,7 +3,6 @@ import signal
 import sys
 import os
 
-# Aseguramos que Python vea la carpeta 'app'
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from neonize.client import NewClient
@@ -16,7 +15,6 @@ init_db()
 
 def on_message(client: NewClient, event: MessageEv):
     try:
-        # --- FILTROS DE SEGURIDAD ---
         # Obtenemos el ID del chat y lo convertimos a texto para verificar
         chat_jid = event.Info.MessageSource.Chat
         jid_str = str(chat_jid)

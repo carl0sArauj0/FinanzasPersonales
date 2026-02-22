@@ -5,16 +5,14 @@ import os
 # Importamos la Base desde models para que SQLAlchemy sepa qué tablas crear
 from .models import Base
 
-# Definimos la ruta de la base de datos (relativa a la raíz del proyecto)
+# Definimos la ruta de la base de datos 
 DB_PATH = "data/finanzas.db"
 engine = create_engine(f'sqlite:///{DB_PATH}', echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    # Crea la carpeta data si no existe
     if not os.path.exists("data"):
         os.makedirs("data")
-    # Crea las tablas definidas en models.py
     Base.metadata.create_all(bind=engine)
 
 def save_gasto(monto, categoria, descripcion):
