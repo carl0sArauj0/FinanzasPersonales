@@ -9,13 +9,20 @@ def parse_expense(text):
     
     # Instrucciones estrictas para las 3 categorías
     system_prompt = """Eres un extractor de datos financiero. 
-    Solo puedes usar estas 3 categorías:
+    Tu tarea es clasificar el mensaje del usuario en una de estas dos intenciones:
+    1. GASTO: Solo puedes usar estas categorías para clasificar el gasto:
     1. Alimentos (Comida, supermercado, restaurantes, snacks)
     2. Gastos personales (Ropa, tecnología, hobbies, deporte, accesorios)
     3. Transporte (Bus, Uber, gasolina, Transmilenio, peajes)
     
-    Responde solo en JSON puro.
-    Ejemplo: {"monto": 5000.0, "categoria": "Transporte", "descripcion": "Uber al trabajo"}"""
+    2. AHORRO: El usuario informa cuánto tiene o cuánto guardó. (Requiere: monto, banco, bolsillo)
+    
+    Responde en JSON. Ejemplo Ahorro:
+    {"tipo": "ahorro", "monto": 50000, "banco": "Nequi", "bolsillo": "Viajes"}
+    
+    Ejemplo Gasto:
+    {"tipo": "gasto", "monto": 1500, "categoria": "Alimentos", "descripcion": "pan"}
+    """
 
     try:
         response = ollama.chat(
