@@ -2,6 +2,7 @@ import logging
 import signal
 import sys
 import os
+from pathlib import Path
 
 # Aseguramos que Python vea la carpeta 'app'
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -75,18 +76,19 @@ def on_message(client: NewClient, event: MessageEv):
         print(f"Error en on_message: {e}")
 
 def main():
-    # Usamos la misma carpeta del escritorio para la sesión de WhatsApp
-    DB_DIR = r'C:\Users\carlo\OneDrive\Desktop\finanzas_app_data'
+    # Ruta al escritorio
+    DB_DIR = Path(r'C:\Users\carlo\OneDrive\Desktop\finanzas_app_data')
     
-    if not os.path.exists(DB_DIR):
-        os.makedirs(DB_DIR)
+    if not DB_DIR.exists():
+        DB_DIR.mkdir(parents=True, exist_ok=True)
 
-    session_path = os.path.join(DB_DIR, "session.db")
-    client = NewClient(session_path)
+    # Definimos la ruta del archivo de sesión
+    session_path = DB_DIR / "session.db"
+    
+    # .as_posix() convierte C:\Ruta en C:/Ruta, que es lo que prefieren las librerías
+    client = NewClient(session_path.as_posix())
     
     client.event(MessageEv)(on_message)
-    print("--- Dashboard Finanzas CONECTADO ---")
+    print(f"--- Dashboard Finanzas CONECTADO ---")
+    print(f"Datos guardándose en: {DB_DIR}")
     client.connect()
-
-if __name__ == "__main__":
-    main()
