@@ -75,15 +75,17 @@ def on_message(client: NewClient, event: MessageEv):
         print(f"Error en on_message: {e}")
 
 def main():
-    if not os.path.exists("data"):
-        os.makedirs("data")
-
-    client = NewClient("data/session.db")
-    client.event(MessageEv)(on_message)
-
-    print("--- MONAI LOCAL: ACTIVO ---")
-    print("Esperando tus mensajes en WhatsApp...")
+    # Usamos la misma carpeta del escritorio para la sesión de WhatsApp
+    DB_DIR = r'C:\Users\carlo\OneDrive\Desktop\finanzas_app_data'
     
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR)
+
+    session_path = os.path.join(DB_DIR, "session.db")
+    client = NewClient(session_path)
+    
+    client.event(MessageEv)(on_message)
+    print("--- Dashboard Finanzas CONECTADO ---")
     client.connect()
 
 if __name__ == "__main__":

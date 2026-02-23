@@ -1,18 +1,20 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
-
+from pathlib import Path
 # Importamos la Base desde models para que SQLAlchemy sepa qué tablas crear
 from .models import Base
 
 # Definimos la ruta de la base de datos 
-DB_PATH = "data/finanzas.db"
+home = str(Path.home())
+DB_DIR = r'C:\Users\carlo\OneDrive\finanzas_app_data'
+DB_PATH = os.path.join(DB_DIR, "finanzas.db")
 engine = create_engine(f'sqlite:///{DB_PATH}', echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    if not os.path.exists("data"):
-        os.makedirs("data")
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR)
     Base.metadata.create_all(bind=engine)
 
 def save_gasto(monto, categoria, descripcion):
