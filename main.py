@@ -76,19 +76,20 @@ def on_message(client: NewClient, event: MessageEv):
         print(f"Error en on_message: {e}")
 
 def main():
-    # Ruta al escritorio
-    DB_DIR = Path(r'C:\Users\carlo\OneDrive\Desktop\finanzas_app_data')
+    # Ruta estilo WSL
+    DB_DIR = "/mnt/c/Users/carlo/OneDrive/Desktop/finanzas_app_data"
     
-    if not DB_DIR.exists():
-        DB_DIR.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR, exist_ok=True)
 
-    # Definimos la ruta del archivo de sesión
-    session_path = DB_DIR / "session.db"
+    # Ruta absoluta del archivo de sesión
+    session_path = os.path.join(DB_DIR, "session.db")
     
-    # .as_posix() convierte C:\Ruta en C:/Ruta, que es lo que prefieren las librerías
-    client = NewClient(session_path.as_posix())
+    # Neonize necesita la ruta limpia
+    client = NewClient(session_path)
     
     client.event(MessageEv)(on_message)
     print(f"--- Dashboard Finanzas CONECTADO ---")
-    print(f"Datos guardándose en: {DB_DIR}")
+    print(f"Guardando datos en el Escritorio de Windows (vía WSL)")
+    
     client.connect()
