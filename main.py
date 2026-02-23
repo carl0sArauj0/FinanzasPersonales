@@ -1,95 +1,73 @@
-import logging
-import signal
 import sys
 import os
-from pathlib import Path
+import signal
 
-# Aseguramos que Python vea la carpeta 'app'
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# 1. Configuración de Rutas 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
 
 from neonize.client import NewClient
 from neonize.events import MessageEv
-from app.core.parser import parse_expense
 from app.core.database import init_db, save_gasto, update_ahorro
+from app.core.parser import parse_expense
 
-# Inicializar Base de Datos al arrancar
+# 2. Inicializar Base de Datos en el Escritorio de Windows
+print("Conectando con la base de datos en el Escritorio...")
 init_db()
 
 def on_message(client: NewClient, event: MessageEv):
     try:
-        # --- FILTROS DE SEGURIDAD ---
+        # Filtros de seguridad
         chat_jid = event.Info.MessageSource.Chat
-        jid_str = str(chat_jid)
-
-        # 1. Ignorar Grupos y Estados
-        if "@g.us" in jid_str or "@broadcast" in jid_str:
+        if "@g.us" in str(chat_jid) or "@broadcast" in str(chat_jid):
             return
-
-        # 2. Solo procesar mensajes que TÚ envías
+        
         if not event.Info.MessageSource.IsFromMe:
             return
 
-        # --- EXTRACCIÓN DE TEXTO ---
+        # Extraer texto
         msg = event.Message
         text = (msg.conversation or 
                 (msg.extendedTextMessage and msg.extendedTextMessage.text) or 
-                (msg.imageMessage and msg.imageMessage.caption) or 
-                "")
+                (msg.imageMessage and msg.imageMessage.caption) or "")
 
         if not text:
             return
 
-        print(f"\n--- Procesando Mensaje ---")
-        print(f"Texto: {text}")
+        print(f"\n--- Mensaje Recibido: {text} ---")
 
-        # --- PROCESAMIENTO CON IA ---
+        # Procesar con IA
         data = parse_expense(text)
         print(f"IA interpretó: {data}")
 
-        if "error" in data:
-            return
+        if "error" in data: return
 
-        # --- DECISIÓN DE LÓGICA ---
-        tipo = data.get("tipo", "gasto") # Por defecto asume gasto
+        tipo = data.get("tipo", "gasto")
 
         if tipo == "gasto":
-            monto = float(data.get('monto', 0))
-            cat = data.get('categoria', 'Gastos personales')
-            desc = data.get('descripcion', text)
-            
-            save_gasto(monto, cat, desc)
-            
-            respuesta = f"💸 *Gasto Registrado*\n💰 ${monto:,.0f}\n📁 {cat}\n📝 {desc}"
-            client.send_message(chat_jid, respuesta)
-
+            save_gasto(float(data['monto']), data['categoria'], data.get('descripcion', text))
+            client.send_message(chat_jid, f"💸 Gasto guardado: ${data['monto']}")
+        
         elif tipo == "ahorro":
-            monto = float(data.get('monto', 0))
-            banco = data.get('banco', 'Otros')
-            bolsillo = data.get('bolsillo', 'Principal')
-            
-            update_ahorro(banco, bolsillo, monto)
-            
-            respuesta = f"💰 *Ahorro Actualizado*\n🏦 {banco}\n📦 {bolsillo}\n💵 Nuevo Saldo: ${monto:,.0f}"
-            client.send_message(chat_jid, respuesta)
+            update_ahorro(data['banco'], data['bolsillo'], float(data['monto']))
+            client.send_message(chat_jid, f"💰 Ahorro actualizado en {data['banco']}")
 
     except Exception as e:
-        print(f"Error en on_message: {e}")
+        print(f"Error procesando mensaje: {e}")
 
 def main():
-    # Ruta estilo WSL
+    # Ruta estilo WSL para el Escritorio de Windows
     DB_DIR = "/mnt/c/Users/carlo/OneDrive/Desktop/finanzas_app_data"
-    
-    if not os.path.exists(DB_DIR):
-        os.makedirs(DB_DIR, exist_ok=True)
-
-    # Ruta absoluta del archivo de sesión
     session_path = os.path.join(DB_DIR, "session.db")
     
-    # Neonize necesita la ruta limpia
+    print(f"Iniciando cliente de WhatsApp...")
     client = NewClient(session_path)
     
+    # IMPORTANTE: Registrar el evento de escucha
     client.event(MessageEv)(on_message)
-    print(f"--- Dashboard Finanzas CONECTADO ---")
-    print(f"Guardando datos en el Escritorio de Windows (vía WSL)")
     
+    print("✅ Bot activo. Escríbete algo en WhatsApp para probar.")
     client.connect()
+
+if __name__ == "__main__":
+    main()
