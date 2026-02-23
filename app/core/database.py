@@ -6,15 +6,16 @@ from pathlib import Path
 from .models import Base
 
 # Definimos la ruta de la base de datos 
-home = str(Path.home())
-DB_DIR = r'C:\Users\carlo\OneDrive\finanzas_app_data'
-DB_PATH = os.path.join(DB_DIR, "finanzas.db")
-engine = create_engine(f'sqlite:///{DB_PATH}', echo=False)
+DB_DIR = Path(r'C:\Users\carlo\OneDrive\finanzas_app_data')
+if not DB_DIR.exists():
+    DB_DIR.mkdir(parents=True, exist_ok=True)
+
+DB_PATH = DB_DIR / "finanzas.db"
+database_url = f'sqlite:///{DB_PATH.as_posix()}'  
+engine = create_engine(database_url, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    if not os.path.exists(DB_DIR):
-        os.makedirs(DB_DIR)
     Base.metadata.create_all(bind=engine)
 
 def save_gasto(monto, categoria, descripcion):
