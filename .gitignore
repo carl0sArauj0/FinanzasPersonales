@@ -1,3 +1,16 @@
+# Bases de datos locales
+data/*.db
+data/*.db-journal
+
+# Sesiones de WhatsApp
+data/session.db
+data/session.db-journal
+
+# Entorno virtual
 finanzas/
-data/
-app/core/__pycache__/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
