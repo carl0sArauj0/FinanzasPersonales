@@ -7,6 +7,12 @@ from .models import CategoriaConfig
 
 # Definimos la ruta de la base de datos 
 DB_DIR = "/mnt/c/Users/carlo/OneDrive/Desktop/finanzas_app_data"
+if not os.path.exists(DB_DIR):
+    # Esto se activará en Streamlit Cloud
+    DB_DIR = "./data" 
+    
+if not os.path.exists(DB_DIR):
+    os.makedirs(DB_DIR)
 DB_PATH = os.path.join(DB_DIR, "finanzas.db")
 database_url = f'sqlite:////{DB_PATH}'  
 engine = create_engine(database_url, echo=False)
