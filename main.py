@@ -15,7 +15,7 @@ from app.core.parser import parse_expense
 print("Conectando con la base de datos en el Escritorio...")
 init_db()
 
-OWNER_PHONE = "+573025150186"  
+OWNER_PHONE = "123"  
 
 def on_message(client: NewClient, event: MessageEv):
     try:
