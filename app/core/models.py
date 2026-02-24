@@ -11,6 +11,7 @@ class Gasto(Base):
     categoria = Column(String)
     descripcion = Column(String)
     fecha = Column(DateTime, default=datetime.utcnow)
+    usuario = Column(String, default="default_user")  
 
 class Ahorro(Base):
     __tablename__ = 'ahorros'
@@ -19,6 +20,7 @@ class Ahorro(Base):
     bolsillo = Column(String, nullable=False)
     monto = Column(Float, default=0.0)
     fecha_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    usuario = Column(String, default="default_user")  
 
 class CategoriaConfig(Base):
     __tablename__ = 'categorias_config'
