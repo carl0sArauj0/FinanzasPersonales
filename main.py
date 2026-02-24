@@ -15,15 +15,17 @@ from app.core.parser import parse_expense
 print("Conectando con la base de datos en el Escritorio...")
 init_db()
 
+OWNER_PHONE = "+573025150186"  
+
 def on_message(client: NewClient, event: MessageEv):
     try:
-        # Filtros de seguridad
         chat_jid = event.Info.MessageSource.Chat
-        if "@g.us" in str(chat_jid) or "@broadcast" in str(chat_jid):
-            return
-        
-        if not event.Info.MessageSource.IsFromMe:
-            return
+        jid_str = str(chat_jid)
+
+        # --- FILTRO DE SEGURIDAD ABSOLUTO ---
+        # Solo procesa si el mensaje viene de TU número específico
+        if OWNER_PHONE not in jid_str:
+            return 
 
         # Extraer texto
         msg = event.Message
