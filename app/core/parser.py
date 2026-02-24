@@ -1,12 +1,16 @@
 import ollama
 import json
 import re
-
+from .database import get_config_categories
 # app/core/parser.py
 
 def parse_expense(text):
     print(f"-> IA analizando: {text}")
     
+    mis_categorias = get_config_categories()
+    categorias_str = ", ".join(mis_categorias)
+
+
     # Instrucciones estrictas para las 3 categorías
     system_prompt = """Eres un extractor de datos financiero. 
     Tu tarea es clasificar el mensaje del usuario en una de estas dos intenciones:

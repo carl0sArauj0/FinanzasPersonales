@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 from pathlib import Path
 from .models import Base
+from .models import CategoriaConfig
 
 # Definimos la ruta de la base de datos 
 DB_DIR = "/mnt/c/Users/carlo/OneDrive/Desktop/finanzas_app_data"
@@ -79,3 +80,30 @@ def get_all_ahorros():
     res = db.query(Ahorro).all()
     db.close()
     return [{"banco": a.banco, "bolsillo": a.bolsillo, "monto": a.monto} for a in res]
+
+def get_config_categories():
+    db = SessionLocal()
+    # Si la tabla está vacía, podrías devolver unas por defecto
+    cats = db.query(CategoriaConfig).all()
+    db.close()
+    if not cats:
+        return ["Alimentos", "Transporte", "Gastos Personales"] # Por defecto
+    return [c.nombre for c in cats]
+
+def add_config_category(nombre):
+    db = SessionLocal()
+    nueva = CategoriaConfig(nombre=nombre)
+    db.add(nueva)
+    try:
+        db.commit()
+    except:
+        db.rollback()
+    db.close()
+
+def delete_config_category(nombre):
+    db = SessionLocal()
+    cat = db.query(CategoriaConfig).filter_by(nombre=nombre).first()
+    if cat:
+        db.delete(cat)
+        db.commit()
+    db.close()

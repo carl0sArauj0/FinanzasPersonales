@@ -19,3 +19,8 @@ class Ahorro(Base):
     bolsillo = Column(String, nullable=False)
     monto = Column(Float, default=0.0)
     fecha_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class CategoriaConfig(Base):
+    __tablename__ = 'categorias_config'
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String, unique=True, nullable=False)
