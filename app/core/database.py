@@ -3,7 +3,7 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-# Conexión con Google Sheets (Asegúrate de configurar los Secrets en Streamlit)
+# Conexión oficial de Streamlit con Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def get_all_gastos(usuario):
@@ -14,16 +14,20 @@ def get_all_gastos(usuario):
         return pd.DataFrame(columns=["fecha", "usuario", "monto", "categoria", "descripcion"])
 
 def save_gasto(monto, categoria, descripcion, usuario):
-    df = conn.read(worksheet="gastos", ttl=0)
-    nuevo_gasto = pd.DataFrame([{
-        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    try:
+        df = conn.read(worksheet="gastos", ttl=0)
+    except:
+        df = pd.DataFrame(columns=["fecha", "usuario", "monto", "categoria", "descripcion"])
+    
+    nuevo = pd.DataFrame([{
+        "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
         "usuario": usuario,
         "monto": float(monto),
         "categoria": categoria,
         "descripcion": descripcion
     }])
-    updated_df = pd.concat([df, nuevo_gasto], ignore_index=True)
-    conn.update(worksheet="gastos", data=updated_df)
+    df = pd.concat([df, nuevo], ignore_index=True)
+    conn.update(worksheet="gastos", data=df)
 
 def get_all_ahorros(usuario):
     try:
@@ -33,38 +37,39 @@ def get_all_ahorros(usuario):
         return pd.DataFrame(columns=["usuario", "banco", "bolsillo", "monto"])
 
 def update_ahorro(banco, bolsillo, monto, usuario):
-    df = conn.read(worksheet="ahorros", ttl=0)
-    # Filtrar para eliminar el registro viejo si existe y actualizarlo
-    if not df.empty:
-        df = df[~((df['usuario'] == usuario) & (df['banco'] == banco) & (df['bolsillo'] == bolsillo))]
-    
-    nuevo_ahorro = pd.DataFrame([{
-        "usuario": usuario, 
-        "banco": banco, 
-        "bolsillo": bolsillo, 
-        "monto": float(monto)
-    }])
-    updated_df = pd.concat([df, nuevo_ahorro], ignore_index=True)
-    conn.update(worksheet="ahorros", data=updated_df)
+    try:
+        df = conn.read(worksheet="ahorros", ttl=0)
+        if not df.empty:
+            df = df[~((df['usuario'] == usuario) & (df['banco'] == banco) & (df['bolsillo'] == bolsillo))]
+    except:
+        df = pd.DataFrame(columns=["usuario", "banco", "bolsillo", "monto"])
+        
+    nuevo = pd.DataFrame([{"usuario": usuario, "banco": banco, "bolsillo": bolsillo, "monto": float(monto)}])
+    df = pd.concat([df, nuevo], ignore_index=True)
+    conn.update(worksheet="ahorros", data=df)
 
 def get_config_categories(usuario):
     try:
         df = conn.read(worksheet="config", ttl=0)
-        user_cats = df[df['usuario'] == usuario]['nombre_categoria'].tolist()
-        if not user_cats:
-            return ["Alimentos", "Transporte", "Gastos Personales"]
-        return user_cats
+        cats = df[df['usuario'] == usuario]['categoria'].tolist()
+        return cats if cats else ["Alimentos", "Transporte", "Gastos Personales"]
     except:
         return ["Alimentos", "Transporte", "Gastos Personales"]
 
 def add_config_category(nombre, usuario):
-    df = conn.read(worksheet="config", ttl=0)
-    nueva = pd.DataFrame([{"usuario": usuario, "nombre_categoria": nombre}])
-    updated_df = pd.concat([df, nueva], ignore_index=True)
-    conn.update(worksheet="config", data=updated_df)
+    try:
+        df = conn.read(worksheet="config", ttl=0)
+    except:
+        df = pd.DataFrame(columns=["usuario", "categoria"])
+    
+    nueva = pd.DataFrame([{"usuario": usuario, "categoria": nombre}])
+    df = pd.concat([df, nueva], ignore_index=True)
+    conn.update(worksheet="config", data=df)
 
 def delete_config_category(nombre, usuario):
-    df = conn.read(worksheet="config", ttl=0)
-    if not df.empty:
-        updated_df = df[~((df['usuario'] == usuario) & (df['nombre_categoria'] == nombre))]
-        conn.update(worksheet="config", data=updated_df)
+    try:
+        df = conn.read(worksheet="config", ttl=0)
+        df = df[~((df['usuario'] == usuario) & (df['categoria'] == nombre))]
+        conn.update(worksheet="config", data=df)
+    except:
+        pass
