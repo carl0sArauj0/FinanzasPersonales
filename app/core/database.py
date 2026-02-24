@@ -1,118 +1,55 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-import os
-from pathlib import Path
-from .models import Base
-from .models import CategoriaConfig
+import streamlit as st
+from streamlit_gsheets import GSheetsConnection
+import pandas as pd
+from datetime import datetime
 
-# Detectamos si estamos en local (WSL) o en la nube
-if os.path.exists("/mnt/c/Users/"):
-    # Tu configuración local
-    DB_DIR = "/mnt/c/Users/carlo/OneDrive/Desktop/finanzas_app_data"
-else:
-    # Configuración para la nube (Streamlit Cloud)
-    DB_DIR = os.path.join(os.getcwd(), "data")
+# Conexión con Google Sheets
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-if not os.path.exists(DB_DIR):
-    os.makedirs(DB_DIR, exist_ok=True)
+def get_all_gastos(usuario):
+    df = conn.read(worksheet="gastos", ttl=0) # ttl=0 para datos frescos
+    return df[df['usuario'] == usuario]
 
-DB_PATH = os.path.join(DB_DIR, "finanzas.db")
+def save_gasto(monto, categoria, descripcion, usuario):
+    df = conn.read(worksheet="gastos", ttl=0)
+    nuevo_gasto = pd.DataFrame([{
+        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "usuario": usuario,
+        "monto": monto,
+        "categoria": categoria,
+        "descripcion": descripcion
+    }])
+    updated_df = pd.concat([df, nuevo_gasto], ignore_index=True)
+    conn.update(worksheet="gastos", data=updated_df)
 
-# Usamos 3 barras para rutas relativas o 4 para absolutas de forma segura
-database_url = f"sqlite:////{DB_PATH}"
+def get_all_ahorros(usuario):
+    df = conn.read(worksheet="ahorros", ttl=0)
+    return df[df['usuario'] == usuario]
 
-engine = create_engine(database_url, echo=False)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def update_ahorro(banco, bolsillo, monto, usuario):
+    df = conn.read(worksheet="ahorros", ttl=0)
+    # Eliminar si ya existe para ese usuario/banco/bolsillo para actualizar
+    df = df[~((df['usuario'] == usuario) & (df['banco'] == banco) & (df['bolsillo'] == bolsillo))]
+    nuevo_ahorro = pd.DataFrame([{
+        "usuario": usuario, "banco": banco, "bolsillo": bolsillo, "monto": monto
+    }])
+    updated_df = pd.concat([df, nuevo_ahorro], ignore_index=True)
+    conn.update(worksheet="ahorros", data=updated_df)
 
-def init_db():
-    Base.metadata.create_all(bind=engine)
+def get_config_categories(usuario):
+    df = conn.read(worksheet="config", ttl=0)
+    user_cats = df[df['usuario'] == usuario]['nombre_categoria'].tolist()
+    if not user_cats:
+        return ["Alimentos", "Transporte", "Gastos Personales"]
+    return user_cats
 
-def save_gasto(monto, categoria, descripcion):
-    from .models import Gasto
-    db = SessionLocal()
-    try:
-        nuevo_gasto = Gasto(monto=monto, categoria=categoria, descripcion=descripcion)
-        db.add(nuevo_gasto)
-        db.commit()
-        db.refresh(nuevo_gasto)
-    except Exception as e:
-        print(f"Error al guardar: {e}")
-        db.rollback()
-    finally:
-        db.close()
+def add_config_category(nombre, usuario):
+    df = conn.read(worksheet="config", ttl=0)
+    nueva = pd.DataFrame([{"usuario": usuario, "nombre_categoria": nombre}])
+    updated_df = pd.concat([df, nueva], ignore_index=True)
+    conn.update(worksheet="config", data=updated_df)
 
-def get_all_gastos():
-    from .models import Gasto
-    db = SessionLocal()
-    try:
-        # Obtenemos todos los gastos de la base de datos
-        gastos = db.query(Gasto).all()
-        # Los convertimos a una lista de diccionarios para que Pandas los entienda
-        return [
-            {
-                "id": g.id,
-                "monto": g.monto,
-                "categoria": g.categoria,
-                "descripcion": g.descripcion,
-                "fecha": g.fecha
-            }
-            for g in gastos
-        ]
-    finally:
-        db.close()
-
-def update_ahorro(banco, bolsillo, monto_nuevo):
-    from .models import Ahorro
-    db = SessionLocal()
-    # Buscamos si ya existe ese bolsillo en ese banco
-    item = db.query(Ahorro).filter_by(banco=banco, bolsillo=bolsillo).first()
-    
-    if item:
-        item.monto = monto_nuevo
-    else:
-        item = Ahorro(banco=banco, bolsillo=bolsillo, monto=monto_nuevo)
-        db.add(item)
-    
-    db.commit()
-    db.close()
-
-def get_ahorros():
-    from .models import Ahorro
-    db = SessionLocal()
-    res = db.query(Ahorro).all()
-    db.close()
-    return res
-
-def get_all_ahorros():
-    from .models import Ahorro
-    db = SessionLocal()
-    res = db.query(Ahorro).all()
-    db.close()
-    return [{"banco": a.banco, "bolsillo": a.bolsillo, "monto": a.monto} for a in res]
-
-def get_config_categories():
-    db = SessionLocal()
-    # Si la tabla está vacía, podrías devolver unas por defecto
-    cats = db.query(CategoriaConfig).all()
-    db.close()
-    if not cats:
-        return ["Alimentos", "Transporte", "Gastos Personales"] # Por defecto
-    return [c.nombre for c in cats]
-
-def add_config_category(nombre):
-    db = SessionLocal()
-    nueva = CategoriaConfig(nombre=nombre)
-    db.add(nueva)
-    try:
-        db.commit()
-    except:
-        db.rollback()
-    db.close()
-
-def delete_config_category(nombre):
-    db = SessionLocal()
-    cat = db.query(CategoriaConfig).filter_by(nombre=nombre).first()
-    if cat:
-        db.delete(cat)
-        db.commit()
-    db.close()
+def delete_config_category(nombre, usuario):
+    df = conn.read(worksheet="config", ttl=0)
+    updated_df = df[~((df['usuario'] == usuario) & (df['nombre_categoria'] == nombre))]
+    conn.update(worksheet="config", data=updated_df)
