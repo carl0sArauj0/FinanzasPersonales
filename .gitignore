@@ -7,3 +7,5 @@ env/
 # Python cache
 app/__pycache__/
 *.py[cod]
+
+core/__pycache__/
