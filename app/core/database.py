@@ -5,23 +5,26 @@ from pathlib import Path
 from .models import Base
 from .models import CategoriaConfig
 
-# Definimos la ruta de la base de datos 
-DB_DIR = "/mnt/c/Users/carlo/OneDrive/Desktop/finanzas_app_data"
+# Detectamos si estamos en local (WSL) o en la nube
+if os.path.exists("/mnt/c/Users/"):
+    # Tu configuración local
+    DB_DIR = "/mnt/c/Users/carlo/OneDrive/Desktop/finanzas_app_data"
+else:
+    # Configuración para la nube (Streamlit Cloud)
+    DB_DIR = os.path.join(os.getcwd(), "data")
+
 if not os.path.exists(DB_DIR):
-    # Esto se activará en Streamlit Cloud
-    DB_DIR = "./data" 
-    
-if not os.path.exists(DB_DIR):
-    os.makedirs(DB_DIR)
+    os.makedirs(DB_DIR, exist_ok=True)
+
 DB_PATH = os.path.join(DB_DIR, "finanzas.db")
-database_url = f'sqlite:////{DB_PATH}'  
+
+# Usamos 3 barras para rutas relativas o 4 para absolutas de forma segura
+database_url = f"sqlite:////{DB_PATH}"
+
 engine = create_engine(database_url, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    if not os.path.exists(DB_DIR):
-        # Creamos la carpeta en el escritorio desde WSL
-        os.makedirs(DB_DIR, exist_ok=True)
     Base.metadata.create_all(bind=engine)
 
 def save_gasto(monto, categoria, descripcion):
