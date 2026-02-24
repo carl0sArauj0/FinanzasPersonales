@@ -8,4 +8,4 @@ env/
 app/__pycache__/
 *.py[cod]
 
-core/__pycache__/
+app/core/__pycache__/
