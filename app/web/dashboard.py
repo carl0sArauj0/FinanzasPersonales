@@ -18,7 +18,7 @@ from app.core.database import (
 )
 
 # Configuración visual de Streamlit
-st.set_page_config(page_title="Monai Local - Finanzas", layout="wide", page_icon="📉")
+st.set_page_config(page_title="Dashboard Finanzas", layout="wide", page_icon="📉")
 
 # --- ESTILOS ---
 st.markdown("""
@@ -37,7 +37,7 @@ st.markdown("""
 
 # --- NAVEGACIÓN LATERAL ---
 with st.sidebar:
-    st.title("🏦 Monai Local")
+    st.title("🏦 Finanzas")
     seccion = st.radio("Menú Principal", ["📊 Gastos", "💰 Ahorros y Bancos", "⚙️ Configuración"])
     st.divider()
     st.info("Esta herramienta procesa tus datos localmente para garantizar tu privacidad.")
