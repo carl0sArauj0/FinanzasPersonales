@@ -12,15 +12,15 @@ from app.core.database import (
     save_gasto, get_config_categories, add_config_category, delete_config_category
 )
 
-st.set_page_config(page_title="Monai Web", layout="wide", page_icon="🏦")
+st.set_page_config(page_title="Finanzas web", layout="wide", page_icon="🏦")
 
 # --- LOGIN ---
 with st.sidebar:
-    st.title("🏦 Monai Web")
+    st.title("🏦 Finanzas Personales")
     user = st.text_input("Ingresa tu Nombre:", value="Invitado").strip().lower()
     st.divider()
     menu = st.radio("Ir a:", ["📊 Mis Gastos", "💰 Mis Ahorros", "⚙️ Configuración"])
-    st.info("Tus datos se guardan en tiempo real.")
+    st.info("Tus datos se guardan en tiempo real. Desarrollado por Carlos Araújo.")
 
 # --- SECCIÓN GASTOS ---
 if menu == "📊 Mis Gastos":
