@@ -5,7 +5,4 @@ venv/
 env/
 
 # Python cache
-app/__pycache__/
-*.py[cod]
-
 app/core/__pycache__/
