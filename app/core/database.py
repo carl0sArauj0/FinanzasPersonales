@@ -1,6 +1,28 @@
+import bcrypt
 import streamlit as st
 from supabase import create_client, Client
 import pandas as pd
+
+# --- Funciones de autenticación ---
+
+def crear_usuario(usuario, password):
+    # Cifrar la contraseña antes de guardarla
+    hashed = bcrypt.hashpw(password.encode('utf-8'), 
+                           bcrypt.gensalt().decode('utf-8'))
+    try: 
+        supabase.table("usuarios").insert({"usuario": usuario.lower(), "password_hash": hashed}).execute()
+        return True
+    except:
+        return False
+    
+def verificar_usuario(usuario, password):
+    res = supabase.table("usuarios").select("password_hash").eq("usuario", usuario.lower()).execute()
+    if res.data:
+        stored_hash = res.data[0]['password_hash']
+        # Comparar la contraseña ingresada con la cifrada
+        if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+            return True
+    return False
 
 # Inicializar cliente de Supabase usando los Secrets
 url = st.secrets["SUPABASE_URL"]
