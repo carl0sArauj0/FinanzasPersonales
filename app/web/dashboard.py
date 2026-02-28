@@ -79,7 +79,6 @@ if menu == "📊 Mis Gastos":
     df_g = get_all_gastos(user)
     if not df_g.empty:
         st.metric("Total Gastado", f"${df_g['monto'].sum():,.0f}")
-        st.dataframe(df_g, use_container_width=True)
         
         c1, c2 = st.columns([1, 1])
         with c1:
