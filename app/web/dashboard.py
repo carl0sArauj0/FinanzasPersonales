@@ -25,7 +25,7 @@ if 'authenticated' not in st.session_state:
 
 # -- Pantalla de login -- 
 def login_screen():
-    st.title("🔐 Bienvenido a Monai Pro")
+    st.title("🔐 Bienvenido a tu Dashboard de Finanzas Personales")
     tab1, tab2 = st.tabs(["Iniciar Sesión", "Registrarse"])
 
     with tab1:
