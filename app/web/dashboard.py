@@ -80,13 +80,37 @@ if menu == "📊 Mis Gastos":
     if not df_g.empty:
         st.metric("Total Gastado", f"${df_g['monto'].sum():,.0f}")
         
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            fig_p = px.pie(df_g, values='monto', names='categoria', hole=0.4, title="Gastos por Categoría")
-            st.plotly_chart(fig_p, use_container_width=True)
-        with c2:
+        col_chart, col_table = st.columns([1, 1])
+        
+        with col_chart:
+            # --- GRÁFICA DE PASTEL ---
+            st.subheader("Distribución por Categoría")
+            fig_pie = px.pie(
+                df_g, 
+                values='monto', 
+                names='categoria', 
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_pie.update_traces(textinfo='percent+label')
+            st.plotly_chart(fig_pie, use_container_width=True)
+            
+        with col_table:
+            # --- HISTORIAL  ---
             st.subheader("Historial de Movimientos")
-            st.dataframe(df_g, use_container_width=True)
+            
+            columnas_principales = ['monto', 'categoria', 'descripcion']
+            otras_columnas = [c for c in df_g.columns if c not in columnas_principales]
+            
+            df_reordenado = df_g[columnas_principales + otras_columnas]
+            
+            # Limpiamos columnas internas para la vista
+            columnas_a_quitar = ['id', 'usuario']
+            for col in columnas_a_quitar:
+                if col in df_reordenado.columns:
+                    df_reordenado = df_reordenado.drop(columns=[col])
+            
+            st.dataframe(df_reordenado.sort_values(by='fecha', ascending=False) if 'fecha' in df_reordenado.columns else df_reordenado, use_container_width=True)
 
 # --- SECCIÓN PATRIMONIO (CON RANKING) ---
 elif menu == "💰 Mi Patrimonio":
