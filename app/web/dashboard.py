@@ -51,9 +51,9 @@ if menu == "📊 Mis Gastos":
     else:
         with st.expander("➕ Registrar Nuevo Gasto (Descontar de Ahorros)"):
             cats = get_config_categories(user)
-            with st.form("f_gasto"):
+            with st.form("f_gasto", clear_on_submit=True):
                 col1, col2 = st.columns(2)
-                monto_g = col1.number_input("Monto ($)", min_value=0.0, step=1000.0)
+                monto_g = col1.number_input("Monto ($)", min_value=0, value=0,step=1000,format="%d")
                 cat_g = col2.selectbox("Categoría", options=cats)
                 
                 # --- SELECTBOXES DEPENDIENTES ---
@@ -65,20 +65,21 @@ if menu == "📊 Mis Gastos":
                 bolsillo_sel = col_b2.selectbox("¿De qué Bolsillo?", options=pockets_disp)
                 
                 desc_g = st.text_input("Descripción (ej: Almuerzo)")
+
+                enviar_gasto = st.form_submit_button("Guardar y Restar Saldo")
                 
-                if st.form_submit_button("Guardar y Restar Saldo"):
+                if enviar_gasto:
                     if monto_g > 0 and desc_g:
-                        # Guardamos el gasto y la función interna de DB restará el saldo
                         save_gasto(monto_g, cat_g, desc_g, user, banco_sel, bolsillo_sel)
-                        st.success(f"¡Gasto registrado! Se restaron ${monto_g:,.0f} de {banco_sel} ({bolsillo_sel})")
-                        st.rerun()
+                        st.success(f"¡Gasto registrado! Se restaron ${monto_g:,.0f} de {banco_sel}")
                     else:
-                        st.error("Ingresa un monto y una descripción.")
+                        st.error("Ingresa un monto mayor a 0 y una descripción.")
 
     # Visualización de Gastos
     df_g = get_all_gastos(user)
     if not df_g.empty:
         st.metric("Total Gastado", f"${df_g['monto'].sum():,.0f}")
+        st.dataframe(df_g, use_container_width=True)
         
         c1, c2 = st.columns([1, 1])
         with c1:
@@ -119,11 +120,11 @@ elif menu == "💰 Mi Patrimonio":
     
     # Formulario para actualizar o crear bolsillos
     with st.expander("📝 Configurar / Actualizar Cuentas"):
-        with st.form("f_ahorro_manual"):
+        with st.form("f_ahorro_manual", clear_on_submit=True):
             c1, c2, c3 = st.columns(3)
             b_manual = c1.text_input("Banco (ej: Nequi)")
             p_manual = c2.text_input("Bolsillo (ej: Ahorros)")
-            m_manual = c3.number_input("Saldo Actual", min_value=0.0)
+            m_manual = c3.number_input("Saldo Actual", min_value=0, value=0, step=1000, format="%d")
             if st.form_submit_button("Guardar Saldo"):
                 if b_manual and p_manual:
                     update_ahorro(b_manual, p_manual, m_manual, user)
