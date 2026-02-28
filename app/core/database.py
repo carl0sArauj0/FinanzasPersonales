@@ -1,33 +1,40 @@
-import bcrypt
 import streamlit as st
 from supabase import create_client, Client
 import pandas as pd
+import bcrypt 
+from datetime import datetime
 
-# --- Funciones de autenticación ---
-
-def crear_usuario(usuario, password):
-    # Cifrar la contraseña antes de guardarla
-    hashed = bcrypt.hashpw(password.encode('utf-8'), 
-                           bcrypt.gensalt().decode('utf-8'))
-    try: 
-        supabase.table("usuarios").insert({"usuario": usuario.lower(), "password_hash": hashed}).execute()
-        return True
-    except:
-        return False
-    
-def verificar_usuario(usuario, password):
-    res = supabase.table("usuarios").select("password_hash").eq("usuario", usuario.lower()).execute()
-    if res.data:
-        stored_hash = res.data[0]['password_hash']
-        # Comparar la contraseña ingresada con la cifrada
-        if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
-            return True
-    return False
-
-# Inicializar cliente de Supabase usando los Secrets
+# Inicializar cliente de Supabase
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(url, key)
+
+# --- FUNCIONES DE AUTENTICACIÓN ---
+
+def crear_usuario(usuario, password):
+    """Cifra la contraseña y crea un nuevo registro en la tabla usuarios."""
+    # Generamos la huella digital (hash) de la contraseña
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    try:
+        supabase.table("usuarios").insert({
+            "usuario": usuario.lower().strip(), 
+            "password_hash": hashed
+        }).execute()
+        return True
+    except Exception as e:
+        print(f"Error al crear usuario: {e}")
+        return False
+
+def validar_usuario(usuario, password):
+    """Busca al usuario y compara la contraseña ingresada con el hash guardado."""
+    res = supabase.table("usuarios").select("password_hash").eq("usuario", usuario.lower().strip()).execute()
+    
+    if res.data:
+        stored_hash = res.data[0]['password_hash']
+        # Comparamos la contraseña con el hash cifrado
+        if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+            return True
+    return False
 
 # --- FUNCIONES DE GASTOS ---
 
@@ -36,7 +43,6 @@ def get_all_gastos(usuario):
     return pd.DataFrame(res.data)
 
 def save_gasto(monto, categoria, descripcion, usuario, banco, bolsillo):
-    # 1. Registrar el gasto
     data_gasto = {
         "usuario": usuario,
         "monto": float(monto),
@@ -47,14 +53,10 @@ def save_gasto(monto, categoria, descripcion, usuario, banco, bolsillo):
     }
     supabase.table("gastos").insert(data_gasto).execute()
 
-    # 2. Lógica de resta automática en Ahorros
-    # Buscamos el saldo actual de ese bolsillo específico
+    # Lógica de resta automática
     res = supabase.table("ahorros").select("monto").eq("usuario", usuario).eq("banco", banco).eq("bolsillo", bolsillo).execute()
-    
     if res.data:
-        saldo_actual = res.data[0]['monto']
-        nuevo_saldo = saldo_actual - float(monto)
-        # Actualizamos el saldo restando el gasto
+        nuevo_saldo = res.data[0]['monto'] - float(monto)
         supabase.table("ahorros").update({"monto": nuevo_saldo}).eq("usuario", usuario).eq("banco", banco).eq("bolsillo", bolsillo).execute()
 
 # --- FUNCIONES DE AHORROS ---
@@ -64,30 +66,23 @@ def get_all_ahorros(usuario):
     return pd.DataFrame(res.data)
 
 def update_ahorro(banco, bolsillo, monto, usuario):
-    # Borramos si existe y creamos el nuevo registro (Upsert manual)
     supabase.table("ahorros").delete().eq("usuario", usuario).eq("banco", banco).eq("bolsillo", bolsillo).execute()
     data = {"usuario": usuario, "banco": banco, "bolsillo": bolsillo, "monto": float(monto)}
     supabase.table("ahorros").insert(data).execute()
 
-# --- NUEVAS FUNCIONES PARA LOS DROPDOWNS DINÁMICOS ---
+# --- FUNCIONES DE FILTRADO ---
 
 def get_unique_banks(usuario):
-    """Devuelve una lista única de los bancos que el usuario tiene registrados."""
     res = supabase.table("ahorros").select("banco").eq("usuario", usuario).execute()
-    if not res.data:
-        return []
-    banks = list(set([item['banco'] for item in res.data]))
-    return sorted(banks)
+    if not res.data: return []
+    return sorted(list(set([item['banco'] for item in res.data])))
 
 def get_pockets_by_bank(usuario, banco):
-    """Devuelve los bolsillos asociados a un banco específico del usuario."""
     res = supabase.table("ahorros").select("bolsillo").eq("usuario", usuario).eq("banco", banco).execute()
-    if not res.data:
-        return []
-    pockets = [item['bolsillo'] for item in res.data]
-    return sorted(pockets)
+    if not res.data: return []
+    return sorted([item['bolsillo'] for item in res.data])
 
-# --- FUNCIONES DE CONFIGURACIÓN ---
+# --- FUNCIONES DE CATEGORÍAS ---
 
 def get_config_categories(usuario):
     res = supabase.table("categorias_config").select("categoria").eq("usuario", usuario).execute()
