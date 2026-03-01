@@ -12,17 +12,20 @@ supabase: Client = create_client(url, key)
 # --- FUNCIONES DE AUTENTICACIÓN ---
 
 def crear_usuario(usuario, password):
-    """Cifra la contraseña y crea un nuevo registro en la tabla usuarios."""
-    # Generamos la huella digital (hash) de la contraseña
+    # Limpiamos espacios y validamos que no sea un texto vacío
+    usuario_limpio = usuario.lower().strip()
+    
+    if not usuario_limpio or not password:
+        return False
+        
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     try:
         supabase.table("usuarios").insert({
-            "usuario": usuario.lower().strip(), 
+            "usuario": usuario_limpio, 
             "password_hash": hashed
         }).execute()
         return True
-    except Exception as e:
-        print(f"Error al crear usuario: {e}")
+    except:
         return False
 
 def validar_usuario(usuario, password):

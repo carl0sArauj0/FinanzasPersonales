@@ -42,21 +42,27 @@ def login_screen():
 
     with tab2:
         st.info("Crea una cuenta para empezar a trackear tus finanzas.")
-        with st.form("register_form"):
+        with st.form("register_form", clear_on_submit=True):
+            # Usamos .strip() para eliminar espacios accidentales al inicio o final
             new_u = st.text_input("Nuevo Usuario").lower().strip()
             new_p = st.text_input("Nueva Contraseña", type="password")
             confirm_p = st.text_input("Confirmar Contraseña", type="password")
+            
             if st.form_submit_button("Crear Cuenta"):
-                if new_p != confirm_p:
-                    st.error("Las contraseñas no coinciden")
+                # VALIDACIÓN 1: Usuario vacío
+                if not new_u:
+                    st.error("❌ El nombre de usuario no puede estar vacío.")
+                # VALIDACIÓN 2: Contraseñas no coinciden
+                elif new_p != confirm_p:
+                    st.error("❌ Las contraseñas no coinciden.")
+                # VALIDACIÓN 3: Seguridad de contraseña
                 elif len(new_p) < 4:
-                    st.error("La contraseña debe tener al menos 4 caracteres")
+                    st.error("❌ La contraseña debe tener al menos 4 caracteres.")
                 else:
                     if crear_usuario(new_u, new_p):
-                        st.success("¡Cuenta creada! Ahora puedes iniciar sesión.")
+                        st.success(f"✅ ¡Cuenta '{new_u}' creada! Ahora puedes iniciar sesión.")
                     else:
-                        st.error("El usuario ya existe o hubo un error.")
-
+                        st.error("❌ El usuario ya existe o hubo un error en el servidor.")
 # -- Cuerpo de la app --
 if not st.session_state['authenticated']:
     login_screen()
