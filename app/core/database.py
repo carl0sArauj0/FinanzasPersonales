@@ -97,3 +97,34 @@ def add_config_category(nombre, usuario):
 
 def delete_config_category(nombre, usuario):
     supabase.table("categorias_config").delete().eq("usuario", usuario).eq("categoria", nombre).execute()
+
+# --- FUNCION DE ELIMINACIÓN DE GASTOS ---
+
+def delete_gasto(id_gasto, usuario):
+    try:
+        # 1. Obtener la información del gasto antes de borrarlo
+        res = supabase.table("gastos").select("*").eq("id", id_gasto).eq("usuario", usuario).execute()
+        
+        if not res.data:
+            return False
+        
+        gasto = res.data[0]
+        monto = gasto['monto']
+        banco = gasto['banco']
+        bolsillo = gasto['bolsillo']
+
+        # 2. Devolver el dinero al ahorro (Sumar lo que se había restado)
+        if banco and bolsillo:
+            res_ahorro = supabase.table("ahorros").select("monto").eq("usuario", usuario).eq("banco", banco).eq("bolsillo", bolsillo).execute()
+            
+            if res_ahorro.data:
+                saldo_actual = res_ahorro.data[0]['monto']
+                nuevo_saldo = saldo_actual + monto
+                supabase.table("ahorros").update({"monto": nuevo_saldo}).eq("usuario", usuario).eq("banco", banco).eq("bolsillo", bolsillo).execute()
+
+        # 3. Borrar el registro del gasto
+        supabase.table("gastos").delete().eq("id", id_gasto).eq("usuario", usuario).execute()
+        return True
+    except Exception as e:
+        print(f"Error al borrar gasto: {e}")
+        return False

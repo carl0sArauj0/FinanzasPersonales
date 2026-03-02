@@ -5,7 +5,7 @@ import sys
 import os
 import bcrypt
 
-# Configuración de la página (DEBE SER LA PRIMERA INSTRUCCIÓN)
+# 1. Configuración de la página (DEBE SER LA PRIMERA INSTRUCCIÓN)
 st.set_page_config(page_title="Finanzas Pro", layout="wide", page_icon="🏦")
 
 # Asegurar que encuentre el core del proyecto
@@ -15,7 +15,7 @@ from app.core.database import (
     get_all_gastos, get_all_ahorros, update_ahorro, 
     save_gasto, get_config_categories, add_config_category, 
     delete_config_category, get_unique_banks, get_pockets_by_bank,
-    validar_usuario, crear_usuario
+    validar_usuario, crear_usuario, delete_gasto  # Asegúrate de que delete_gasto esté en database.py
 )
 
 # -- Lógica de la sesión --
@@ -43,19 +43,15 @@ def login_screen():
     with tab2:
         st.info("Crea una cuenta para empezar a trackear tus finanzas.")
         with st.form("register_form", clear_on_submit=True):
-            # Usamos .strip() para eliminar espacios accidentales al inicio o final
             new_u = st.text_input("Nuevo Usuario").lower().strip()
             new_p = st.text_input("Nueva Contraseña", type="password")
             confirm_p = st.text_input("Confirmar Contraseña", type="password")
             
             if st.form_submit_button("Crear Cuenta"):
-                # VALIDACIÓN 1: Usuario vacío
                 if not new_u:
                     st.error("❌ El nombre de usuario no puede estar vacío.")
-                # VALIDACIÓN 2: Contraseñas no coinciden
                 elif new_p != confirm_p:
                     st.error("❌ Las contraseñas no coinciden.")
-                # VALIDACIÓN 3: Seguridad de contraseña
                 elif len(new_p) < 4:
                     st.error("❌ La contraseña debe tener al menos 4 caracteres.")
                 else:
@@ -63,11 +59,11 @@ def login_screen():
                         st.success(f"✅ ¡Cuenta '{new_u}' creada! Ahora puedes iniciar sesión.")
                     else:
                         st.error("❌ El usuario ya existe o hubo un error en el servidor.")
+
 # -- Cuerpo de la app --
 if not st.session_state['authenticated']:
     login_screen()
 else:
-    # Definimos el usuario actual desde la sesión
     user = st.session_state['user']
 
     # --- SIDEBAR ---
@@ -142,9 +138,28 @@ else:
                 
             with col_table:
                 st.subheader("Historial")
-                # Limpieza de columnas para vista
                 df_view = df_g.drop(columns=['id', 'usuario'], errors='ignore')
                 st.dataframe(df_view.sort_values(by='fecha', ascending=False) if 'fecha' in df_view.columns else df_view, use_container_width=True)
+
+            # --- GESTIONAR BORRADO (Dentro de la sección de gastos) ---
+            st.divider()
+            st.subheader("🗑️ Gestionar Movimientos")
+            with st.expander("Eliminar un gasto específico"):
+                opciones_borrar = {
+                    f"ID: {row['id']} | ${row['monto']:,.0f} | {row['descripcion']}": row['id'] 
+                    for _, row in df_g.iterrows()
+                }
+                seleccion = st.selectbox("Selecciona el gasto que deseas eliminar:", options=list(opciones_borrar.keys()))
+                id_seleccionado = opciones_borrar[seleccion]
+                
+                st.warning(f"⚠️ **Atención:** Si eliminas este gasto, se devolverá el dinero a tu cuenta.")
+                
+                if st.button("Confirmar Eliminación", type="primary"):
+                    if delete_gasto(id_seleccionado, user):
+                        st.success("✅ Gasto eliminado y saldo restaurado.")
+                        st.rerun()
+                    else:
+                        st.error("Error al eliminar.")
 
     # --- SECCIÓN PATRIMONIO ---
     elif menu == "💰 Mi Patrimonio":
@@ -161,9 +176,11 @@ else:
             st.divider()
             col_ah1, col_ah2 = st.columns([1,1])
             with col_ah1:
+                st.subheader("Distribución")
                 fig_sun = px.sunburst(df_ah, path=['banco', 'bolsillo'], values='monto', color='monto', color_continuous_scale='RdYlGn')
                 st.plotly_chart(fig_sun, use_container_width=True)
             with col_ah2:
+                st.subheader("Detalle de Cuentas")
                 st.table(df_ah[['banco', 'bolsillo', 'monto']].sort_values(by='monto', ascending=False))
     
         with st.expander("📝 Configurar / Actualizar Cuentas"):
