@@ -69,10 +69,28 @@ def get_all_ahorros(usuario):
     return pd.DataFrame(res.data)
 
 def update_ahorro(banco, bolsillo, monto, usuario):
-    supabase.table("ahorros").delete().eq("usuario", usuario).eq("banco", banco).eq("bolsillo", bolsillo).execute()
-    data = {"usuario": usuario, "banco": banco, "bolsillo": bolsillo, "monto": float(monto)}
+    # Forzamos limpieza: Quitar espacios y poner formato Título (Ej: "nequi" -> "Nequi")
+    banco_clean = banco.strip().title()
+    bolsillo_clean = bolsillo.strip().title()
+    
+    # 1. Intentamos borrar cualquier registro previo que coincida exactamente
+    supabase.table("ahorros").delete().eq("usuario", usuario).eq("banco", banco_clean).eq("bolsillo", bolsillo_clean).execute()
+    
+    # 2. Insertamos el nuevo saldo
+    data = {
+        "usuario": usuario, 
+        "banco": banco_clean, 
+        "bolsillo": bolsillo_clean, 
+        "monto": float(monto)
+    }
     supabase.table("ahorros").insert(data).execute()
-
+def delete_ahorro(id_ahorro, usuario):
+    try:
+        supabase.table("ahorros").delete().eq("id", id_ahorro).eq("usuario", usuario).execute()
+        return True
+    except Exception as e:
+        print(f"Error al borrar ahorro: {e}")
+        return False
 # --- FUNCIONES DE FILTRADO ---
 
 def get_unique_banks(usuario):
