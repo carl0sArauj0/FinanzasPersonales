@@ -15,7 +15,7 @@ from app.core.database import (
     get_all_gastos, get_all_ahorros, update_ahorro, 
     save_gasto, get_config_categories, add_config_category, 
     delete_config_category, get_unique_banks, get_pockets_by_bank,
-    validar_usuario, crear_usuario, delete_gasto  # Asegúrate de que delete_gasto esté en database.py
+    validar_usuario, crear_usuario, delete_gasto, delete_ahorro
 )
 
 # -- Lógica de la sesión --
@@ -182,18 +182,40 @@ else:
             with col_ah2:
                 st.subheader("Detalle de Cuentas")
                 st.table(df_ah[['banco', 'bolsillo', 'monto']].sort_values(by='monto', ascending=False))
+
+            # BORRAR CUENTA / BOLSILLO ---
+            st.divider()
+            with st.expander("🗑️ Eliminar Cuenta / Bolsillo"):
+                dict_ah_borrar = {
+                    f"{row['banco']} - {row['bolsillo']} (${row['monto']:,.0f})": row['id'] 
+                    for _, row in df_ah.iterrows()
+                }
+                sel_ah = st.selectbox("Selecciona la cuenta a eliminar:", options=list(dict_ah_borrar.keys()))
+                id_ah_sel = dict_ah_borrar[sel_ah]
+                
+                st.warning("⚠️ **Atención:** Esto eliminará el registro del saldo. No afectará el historial de gastos pasados.")
+                
+                if st.button("Confirmar Eliminación de Cuenta", type="primary"):
+                    if delete_ahorro(id_ah_sel, user):
+                        st.success("✅ Cuenta eliminada correctamente.")
+                        st.rerun()
+                    else:
+                        st.error("Error al eliminar la cuenta.")
     
         with st.expander("📝 Configurar / Actualizar Cuentas"):
             with st.form("f_ahorro_manual", clear_on_submit=True):
                 c1, c2, c3 = st.columns(3)
-                b_manual = c1.text_input("Banco")
-                p_manual = c2.text_input("Bolsillo")
+                b_manual = c1.text_input("Banco").strip().title()
+                p_manual = c2.text_input("Bolsillo").strip().title()
                 m_manual = c3.number_input("Saldo Actual", min_value=0, value=0, step=1000, format="%d")
+                
                 if st.form_submit_button("Guardar Saldo"):
                     if b_manual and p_manual:
                         update_ahorro(b_manual, p_manual, m_manual, user)
                         st.success("Saldo actualizado.")
                         st.rerun()
+                    else:
+                        st.error("Debes llenar Banco y Bolsillo.")
 
     # --- SECCIÓN CONFIGURACIÓN ---
     elif menu == "⚙️ Configuración":
