@@ -69,21 +69,25 @@ def get_all_ahorros(usuario):
     return pd.DataFrame(res.data)
 
 def update_ahorro(banco, bolsillo, monto, usuario):
-    # Forzamos limpieza: Quitar espacios y poner formato Título (Ej: "nequi" -> "Nequi")
-    banco_clean = banco.strip().title()
-    bolsillo_clean = bolsillo.strip().title()
+    # Limpieza extrema para evitar duplicados accidentales
+    banco_clean = " ".join(banco.split()).title() 
+    bolsillo_clean = " ".join(bolsillo.split()).title()
     
-    # 1. Intentamos borrar cualquier registro previo que coincida exactamente
+    # Borrar duplicados que coincidan en nombre limpio antes de insertar
     supabase.table("ahorros").delete().eq("usuario", usuario).eq("banco", banco_clean).eq("bolsillo", bolsillo_clean).execute()
     
-    # 2. Insertamos el nuevo saldo
-    data = {
-        "usuario": usuario, 
-        "banco": banco_clean, 
-        "bolsillo": bolsillo_clean, 
-        "monto": float(monto)
-    }
+    data = {"usuario": usuario, "banco": banco_clean, "bolsillo": bolsillo_clean, "monto": float(monto)}
     supabase.table("ahorros").insert(data).execute()
+
+def update_ahorro_by_id(id_ahorro, nuevo_monto, usuario):
+    """Actualiza el monto de una cuenta usando su ID único."""
+    try:
+        supabase.table("ahorros").update({"monto": float(nuevo_monto)}).eq("id", id_ahorro).eq("usuario", usuario).execute()
+        return True
+    except Exception as e:
+        print(f"Error al actualizar monto: {e}")
+        return False
+
 def delete_ahorro(id_ahorro, usuario):
     try:
         supabase.table("ahorros").delete().eq("id", id_ahorro).eq("usuario", usuario).execute()
